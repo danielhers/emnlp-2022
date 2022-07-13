@@ -75,7 +75,7 @@ class WorkshopMetadata:
         self.data = workshop
         self.repo_full_name = f"emnlp-2022/{workshop['acronym']}"
         self.organizers = [{"first_name": name.partition(" ")[0], "last_name": name.partition(" ")[2]}
-                           for name in workshop["organizers"].replace(" and ", ",").split(", ")]
+                           for name in workshop["organizers"].replace(" and ", ", ").split(", ")]
         if workshop["date"] == "7 & 8 December":
             self.start_date = datetime.datetime(2022, 12, 7)
             self.end_date = datetime.datetime(2022, 12, 8)
