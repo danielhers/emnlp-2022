@@ -102,7 +102,9 @@ volume_name: 1
 def create_repo(g, metadata):
     try:
         repo = g.get_repo(metadata.repo_full_name)
-        print(f"{metadata.repo_full_name} already exists, updating...")
+        print(f"{metadata.repo_full_name} already exists. Update? [Y/N]", end=" ")
+        if input().lower() != "y":
+            return
     except UnknownObjectException:
         template_repo = g.get_repo("emnlp-2022/workshop-template")
         print(f"Create {metadata.repo_full_name}? [Y/N]", end=" ")
