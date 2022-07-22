@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import os.path
+import argparse
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -99,18 +100,22 @@ volume_name: 1
 """
 
 
-def create_repo(g, metadata):
+def get_repo(g, metadata):
     try:
-        repo = g.get_repo(metadata.repo_full_name)
-        print(f"{metadata.repo_full_name} already exists. Update? [Y/N]", end=" ")
-        if input().lower() != "y":
-            return
+        return g.get_repo(metadata.repo_full_name)
     except UnknownObjectException:
-        template_repo = g.get_repo("emnlp-2022/workshop-template")
-        print(f"Create {metadata.repo_full_name}? [Y/N]", end=" ")
-        if input().lower() != "y":
-            return
-        repo = template_repo.create_fork(organization="emnlp-2022")
+        return None
+
+
+def create_repo(g, metadata):
+    template_repo = g.get_repo("emnlp-2022/workshop-template")
+    print(f"Create {metadata.repo_full_name}? [Y/N]", end=" ")
+    if input().lower() != "y":
+        return
+    return template_repo.create_fork(organization="emnlp-2022")
+
+
+def update_repo(g, metadata, repo):
     readme = repo.get_contents("README.md").decoded_content.decode().replace("EMNLP 2022 workshop template", metadata.data["name"])
     repo.edit(name=metadata.data["acronym"], description=metadata.data["name"],
               homepage=metadata.data["website"], private=True)
@@ -124,7 +129,7 @@ def create_repo(g, metadata):
     update_file(repo, "README.md", readme)
 
 
-def main():
+def main(args):
     workshop_data = fetch_coordination_sheet()
     print("Enter GitHub access token:", end=" ")
     access_token = input()
@@ -133,8 +138,21 @@ def main():
         if not workshop["book chair github username"]:
             print(f"Book chair not set for {workshop['acronym']}, skipping")
             continue
-        create_repo(g, WorkshopMetadata(workshop))
+        metadata = WorkshopMetadata(workshop)
+        repo = get_repo(g, metadata)
+        if repo is None:
+            repo = create_repo(g, metadata)
+        elif args.skip_existing:
+            print(f"{metadata.repo_full_name} already exists, skipping")
+            continue
+        else:
+            print(f"{metadata.repo_full_name} already exists, update? [Y/N]", end=" ")
+            if input().lower() != "y":
+                continue
+        update_repo(g, metadata, repo)
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description="Create metadata and update metadata repositories on GitHub for EMNLP 2022 workshops based on the data from the coordination spreadsheet on Google Sheets.")
+    parser.add_argument("-s", "--skip-existing", action="store_true", help="Only create new repositories, do not even ask about updating existing ones.")
+    main(parser.parse_args())
