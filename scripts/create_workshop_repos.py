@@ -114,10 +114,11 @@ def create_repo(g, metadata):
     readme = repo.get_contents("README.md").decoded_content.decode().replace("EMNLP 2022 workshop template", metadata.data["name"])
     repo.edit(name=metadata.data["acronym"], description=metadata.data["name"],
               homepage=metadata.data["website"], private=True)
-    try:
-        repo.add_to_collaborators(metadata.data["book chair github username"], "admin")
-    except UnknownObjectException:
-        raise ValueError(f"Unknown GitHub username: {metadata.data['book chair github username']} (for {workshop['acronym']})")
+    for book_chair in metadata.data["book chair github username"].replace(" ", "").split(","):
+        try:
+            repo.add_to_collaborators(book_chair, "admin")
+        except UnknownObjectException:
+            raise ValueError(f"Unknown GitHub username: {book_chair} (for {workshop['acronym']})")
     update_file(repo, "conference_details.yml", metadata.conference_details)
     update_file(repo, "organizing_committee.yml", metadata.organizing_committee)
     update_file(repo, "README.md", readme)
@@ -129,8 +130,7 @@ def main():
     access_token = input()
     g = Github(access_token)
     for workshop in workshop_data:
-        book_chair = workshop["book chair github username"]
-        if not book_chair:
+        if not workshop["book chair github username"]:
             print(f"Book chair not set for {workshop['acronym']}, skipping")
             continue
         create_repo(g, WorkshopMetadata(workshop))
