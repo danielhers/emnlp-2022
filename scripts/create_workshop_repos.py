@@ -123,7 +123,7 @@ def update_repo(g, metadata, repo):
         try:
             repo.add_to_collaborators(book_chair, "admin")
         except UnknownObjectException:
-            raise ValueError(f"Unknown GitHub username: {book_chair} (for {workshop['acronym']})")
+            raise ValueError(f"Unknown GitHub username: {book_chair} (for {metadata.workshop['acronym']})")
     update_file(repo, "conference_details.yml", metadata.conference_details)
     update_file(repo, "organizing_committee.yml", metadata.organizing_committee)
     update_file(repo, "README.md", readme)
