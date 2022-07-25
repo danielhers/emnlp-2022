@@ -98,6 +98,80 @@ volume_name: 1
 {list_names(self.organizers, institution='')}
   role: Organizers
 """
+        self.program = f"""- title: Session 1
+  start_time: {self.start_date.strftime("%Y-%m-%d")}T09:00:00+04:00
+  end_time: {self.start_date.strftime("%Y-%m-%d")}T10:30:00+04:00
+
+- title: Coffee Break
+  start_time: {self.start_date.strftime("%Y-%m-%d")}T10:30:00+04:00
+  end_time: {self.start_date.strftime("%Y-%m-%d")}T11:00:00+04:00
+
+- title: Session 2
+  start_time: {self.start_date.strftime("%Y-%m-%d")}T11:00:00+04:00
+  end_time: {self.start_date.strftime("%Y-%m-%d")}T12:30:00+04:00
+
+- title: Lunch Break
+  start_time: {self.start_date.strftime("%Y-%m-%d")}T12:30:00+04:00
+  end_time: {self.start_date.strftime("%Y-%m-%d")}T14:00:00+04:00
+
+- title: Session 3
+  start_time: {self.start_date.strftime("%Y-%m-%d")}T14:00:00+04:00
+  end_time: {self.start_date.strftime("%Y-%m-%d")}T15:30:00+04:00
+
+- title: Coffee Break
+  start_time: {self.start_date.strftime("%Y-%m-%d")}T15:30:00+04:00
+  end_time: {self.start_date.strftime("%Y-%m-%d")}T16:00:00+04:00
+
+- title: Session 4
+  start_time: {self.start_date.strftime("%Y-%m-%d")}T16:00:00+04:00
+  end_time: {self.start_date.strftime("%Y-%m-%d")}T17:30:00+04:00
+
+- title: Mini Break
+  start_time: {self.start_date.strftime("%Y-%m-%d")}T17:30:00+04:00
+  end_time: {self.start_date.strftime("%Y-%m-%d")}T17:45:00+04:00
+
+- title: Session 5
+  start_time: {self.start_date.strftime("%Y-%m-%d")}T17:45:00+04:00
+  end_time: {self.start_date.strftime("%Y-%m-%d")}T19:00:00+04:00
+
+"""
+        if self.start_date != self.end_date:
+            self.program += f"""- title: Session 1
+  start_time: {self.end_date.strftime("%Y-%m-%d")}T09:00:00+04:00
+  end_time: {self.end_date.strftime("%Y-%m-%d")}T10:30:00+04:00
+
+- title: Coffee Break
+  start_time: {self.end_date.strftime("%Y-%m-%d")}T10:30:00+04:00
+  end_time: {self.end_date.strftime("%Y-%m-%d")}T11:00:00+04:00
+
+- title: Session 2
+  start_time: {self.end_date.strftime("%Y-%m-%d")}T11:00:00+04:00
+  end_time: {self.end_date.strftime("%Y-%m-%d")}T12:30:00+04:00
+
+- title: Lunch Break
+  start_time: {self.end_date.strftime("%Y-%m-%d")}T12:30:00+04:00
+  end_time: {self.end_date.strftime("%Y-%m-%d")}T14:00:00+04:00
+
+- title: Session 3
+  start_time: {self.end_date.strftime("%Y-%m-%d")}T14:00:00+04:00
+  end_time: {self.end_date.strftime("%Y-%m-%d")}T15:30:00+04:00
+
+- title: Coffee Break
+  start_time: {self.end_date.strftime("%Y-%m-%d")}T15:30:00+04:00
+  end_time: {self.end_date.strftime("%Y-%m-%d")}T16:00:00+04:00
+
+- title: Session 4
+  start_time: {self.end_date.strftime("%Y-%m-%d")}T16:00:00+04:00
+  end_time: {self.end_date.strftime("%Y-%m-%d")}T17:30:00+04:00
+
+- title: Mini Break
+  start_time: {self.end_date.strftime("%Y-%m-%d")}T17:30:00+04:00
+  end_time: {self.end_date.strftime("%Y-%m-%d")}T17:45:00+04:00
+
+- title: Session 5
+  start_time: {self.end_date.strftime("%Y-%m-%d")}T17:45:00+04:00
+  end_time: {self.end_date.strftime("%Y-%m-%d")}T19:00:00+04:00
+"""
 
 
 def get_repo(g, metadata):
@@ -115,18 +189,20 @@ def create_repo(g, metadata):
     return template_repo.create_fork(organization="emnlp-2022")
 
 
-def update_repo(g, metadata, repo):
-    readme = repo.get_contents("README.md").decoded_content.decode().replace("EMNLP 2022 workshop template", metadata.data["name"])
-    repo.edit(name=metadata.data["acronym"], description=metadata.data["name"],
-              homepage=metadata.data["website"], private=True)
+def update_repo(g, metadata, repo, only_schedule=False):
+    if not only_schedule:
+        readme = repo.get_contents("README.md").decoded_content.decode().replace("EMNLP 2022 workshop template", metadata.data["name"])
+        repo.edit(name=metadata.data["acronym"], description=metadata.data["name"],
+                  homepage=metadata.data["website"], private=True)
+        update_file(repo, "conference_details.yml", metadata.conference_details)
+        update_file(repo, "organizing_committee.yml", metadata.organizing_committee)
+        update_file(repo, "README.md", readme)
+    update_file(repo, "program.yml", metadata.program)
     for book_chair in metadata.data["book chair github username"].replace(" ", "").split(","):
         try:
             repo.add_to_collaborators(book_chair, "admin")
         except UnknownObjectException:
             raise ValueError(f"Unknown GitHub username: {book_chair} (for {metadata.data['acronym']})")
-    update_file(repo, "conference_details.yml", metadata.conference_details)
-    update_file(repo, "organizing_committee.yml", metadata.organizing_committee)
-    update_file(repo, "README.md", readme)
 
 
 def main(args):
@@ -149,10 +225,11 @@ def main(args):
             print(f"{metadata.repo_full_name} already exists, update? [Y/N]", end=" ")
             if input().lower() != "y":
                 continue
-        update_repo(g, metadata, repo)
+        update_repo(g, metadata, repo, args.only_schedule)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Create metadata and update metadata repositories on GitHub for EMNLP 2022 workshops based on the data from the coordination spreadsheet on Google Sheets.")
-    parser.add_argument("-s", "--skip-existing", action="store_true", help="Only create new repositories, do not even ask about updating existing ones.")
+    parser.add_argument("--skip-existing", action="store_true", help="Only create new repositories, do not even ask about updating existing ones.")
+    parser.add_argument("--only-schedule", action="store_true", help="Only update the schedule in program.yml and leave everything else untouched.")
     main(parser.parse_args())
